@@ -1,0 +1,135 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const bookForm = document.getElementById('bookForm');
+    const message = document.getElementById('message');
+    const bookList = document.getElementById('bookList');
+    const exportButton = document.getElementById('exportButton');
+
+    let db;
+
+    // Abrir o banco de dados
+    const request = window.indexedDB.open('biblioteca', 1);
+
+    // Se houver um erro ao abrir o banco de dados
+    request.onerror = function(event) {
+        console.log('Erro ao abrir o banco de dados:', event.target.errorCode);
+    };
+
+    // Se o banco de dados for criado ou atualizado com sucesso
+    request.onsuccess = function(event) {
+        db = event.target.result;
+        console.log('Banco de dados aberto com sucesso');
+        // Carregar livros do banco de dados ao iniciar
+        loadBooksFromDB();
+    };
+
+    // Este evento é executado quando uma nova versão do banco de dados precisa ser criada
+    request.onupgradeneeded = function(event) {
+        const db = event.target.result;
+        const objectStore = db.createObjectStore('livros', { keyPath: 'id', autoIncrement:true });
+        console.log('Banco de dados atualizado com sucesso');
+    };
+
+    bookForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const title = document.getElementById('bookTitle').value;
+        const author = document.getElementById('bookAuthor').value;
+        const publisher = document.getElementById('bookPublisher').value;
+        const year = document.getElementById('bookYear').value;
+        const description = document.getElementById('bookDescription').value;
+
+        if (!title || !author || !publisher || !year || !description) {
+            showMessage('Por favor, preencha todos os campos.');
+            return;
+        }
+
+        const bookData = {
+            title,
+            author,
+            publisher,
+            year,
+            description
+        };
+
+        // Adicionar livro ao banco de dados
+        addBookToDB(bookData);
+
+        // Limpar formulário após o envio
+        bookForm.reset();
+        showMessage('Livro adicionado com sucesso!');
+    });
+
+    exportButton.addEventListener('click', () => {
+        exportToCSV();
+    });
+
+    function showMessage(msg) {
+        message.textContent = msg;
+        message.classList.remove('hidden');
+        setTimeout(() => {
+            message.textContent = '';
+            message.classList.add('hidden');
+        }, 3000);
+    }
+
+    function addBookToList(book) {
+        const li = document.createElement('li');
+        li.classList.add('book-item');
+        li.innerHTML = `
+            <h3>${book.title}</h3>
+            <p><strong>Autor:</strong> ${book.author}</p>
+            <p><strong>Editora:</strong> ${book.publisher}</p>
+            <p><strong>Ano de Publicação:</strong> ${book.year}</p>
+            <p><strong>Descrição:</strong> ${book.description}</p>
+        `;
+        bookList.appendChild(li);
+    }
+
+    function addBookToDB(book) {
+        const transaction = db.transaction(['livros'], 'readwrite');
+        const objectStore = transaction.objectStore('livros');
+        const request = objectStore.add(book);
+
+        request.onsuccess = function(event) {
+            console.log('Livro adicionado ao banco de dados com sucesso');
+            addBookToList(book);
+        };
+
+        request.onerror = function(event) {
+            console.log('Erro ao adicionar livro ao banco de dados:', event.target.error);
+        };
+    }
+
+    function loadBooksFromDB() {
+        const objectStore = db.transaction(['livros']).objectStore('livros');
+        objectStore.openCursor().onsuccess = function(event) {
+            const cursor = event.target.result;
+            if (cursor) {
+                addBookToList(cursor.value);
+                cursor.continue();
+            }
+        };
+    }
+
+    function exportToCSV() {
+        const objectStore = db.transaction(['livros']).objectStore('livros');
+        const request = objectStore.getAll();
+
+        request.onsuccess = function(event) {
+            const books = event.target.result;
+            let csvContent = 'data:text/csv;charset=utf-8,';
+            csvContent += 'Título,Autor,Editora,Ano de Publicação,Descrição\n';
+
+            books.forEach(function(book) {
+                csvContent += `${book.title},${book.author},${book.publisher},${book.year},${book.description}\n`;
+            });
+
+            const encodedUri = encodeURI(csvContent);
+            const link = document.createElement('a');
+            link.setAttribute('href', encodedUri);
+            link.setAttribute('download', 'livros.csv');
+            document.body.appendChild(link);
+            link.click();
+        };
+    }
+});
