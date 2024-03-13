@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Minha Biblioteca</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Minha Biblioteca</h1>
+        <form id="bookForm">
+            <input type="text" id="bookTitle" placeholder="Título do Livro" required>
+            <input type="text" id="bookAuthor" placeholder="Autor" required>
+            <input type="text" id="bookPublisher" placeholder="Editora" required>
+            <input type="number" id="bookYear" placeholder="Ano de Publicação" required>
+            <textarea id="bookDescription" placeholder="Descrição" required></textarea>
+            <button type="submit">Adicionar Livro</button>
+            <button id="exportButton">Exportar para CSV</button>
+        </form>
+        <div id="message" class="hidden"></div>
+    </div>
+
+    <div class="container">
+        <h2>Meus Livros</h2>
+        <ul id="bookList"></ul>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
